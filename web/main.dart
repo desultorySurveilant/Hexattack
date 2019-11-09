@@ -1,16 +1,12 @@
 import 'dart:html';
-
 import 'dart:math';
 
-
-
-TextAreaElement board = TextAreaElement();
 CanvasElement canvas = CanvasElement()..width = 400..height=400;
 List<Pawn> pawnList = <Pawn>[];
 List<Tile> tileList = <Tile>[];
 List<Mark> markList = <Mark>[];
 List<Move> moveQueue = <Move>[];
-List<Mark> turnMarks = <Mark>[];
+List<Move> turnMarks = <Move>[];
 Pawn selected;
 Mode mode = Mode.neutral;
 
@@ -42,14 +38,13 @@ void handleClick(MouseEvent e){
   }
   for(final Tile tile in tileList){
     tile.draw();
-  }
-  for(final Mark mark in markList){
+  } for(final Move move in turnMarks){
+    move.draw();
+  } for(final Mark mark in markList){
     mark.draw();
-  }
-  for(final Pawn pawn in pawnList){
+  } for(final Pawn pawn in pawnList){
     pawn.draw();
-  }
-  for(final Move move in moveQueue){
+  } for(final Move move in moveQueue){
     move.draw();
   }
 }
@@ -58,9 +53,10 @@ void handleNeutralClick(Point<num> p){
   final Pawn target = pawnList.firstWhere((Pawn w) => w.tile.pointInHex(p), orElse: ()=>null);
   if(target != null){
 //    target.color = [255, 0, 0];
-    target.draw();
+//    target.draw();
     final Iterable<Tile> adj = getAdjacents(target.tile);
     markList.addAll(adj.map((Tile t) => Mark(t, <int>[255, 255, 0])));
+    moveQueue.removeWhere((Move m) => m.source == target.tile);
     selected = target;
     mode = Mode.moving;
   }
@@ -72,7 +68,7 @@ void handleMoveClick(Point<num> p){
     final Iterable<Tile> adj = getAdjacents(selected.tile);
     if (adj.contains(target) && !pawnList.any((Pawn w)=> w.tile == target)){
       moveQueue.add(MoveMove(selected.tile, relativeDirection(selected.tile, target)));
-      selected.tile = target;
+//      selected.tile = target;
     }
   }
   selected = null;
@@ -233,6 +229,7 @@ enum Direction{
 abstract class Move{
   final Tile source;
   final Direction direction;
+  bool executed = false;
   Move(this.source, this.direction);
   void draw();
   void call();
@@ -241,10 +238,14 @@ class MoveMove extends Move{
   MoveMove(Tile e, Direction d):super(e, d);
   @override
   void draw(){
-    for(final Direction d in Direction.values){
-      drawTrapezoid(source.centerX, source.centerY, d, Tile.radius * Tile.innerScale, Tile.radius, canvas, <int>[0, 51, 0]);
+    if(executed){
+      for(final Direction d in Direction.values){
+        drawTrapezoid(source.centerX, source.centerY, d, Tile.radius * Tile.innerScale, Tile.radius, canvas, <int>[0, 51, 0]);
+      }
+      drawTrapezoid(source.centerX, source.centerY, direction, Tile.radius * Tile.innerScale, Tile.radius, canvas, <int>[255, 255, 0]);
+    }else{
+      drawTrapezoid(source.centerX, source.centerY, direction, Tile.radius * Tile.innerScale, Tile.radius, canvas, <int>[255, 255, 0]);
     }
-    drawTrapezoid(source.centerX, source.centerY, direction, Tile.radius * Tile.innerScale, Tile.radius, canvas, <int>[255, 255, 0]);
   }
   @override
   void call() {
